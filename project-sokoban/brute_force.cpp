@@ -128,7 +128,7 @@ class State {
             move(mv),
             parentState(parSt) { }
 
-        State movePlayer(int dy, int dx) {
+        State* movePlayer(int dy, int dx) {
             auto newBoxes = boxes;
             char mv;
             if ( dy == 0 ) {
@@ -148,10 +148,10 @@ class State {
             int py = playerPosition.first;
             int px = playerPosition.second;
             auto newPlayerPos = make_pair(py + dy, px + dx);
-            return State(newPlayerPos, newBoxes, this, mv);
+            return new State(newPlayerPos, newBoxes, this, mv);
         }
 
-        State dragBox(int dy, int dx) {
+        State* dragBox(int dy, int dx) {
             // assumes that the movement is valid
             int py = playerPosition.first;
             int px = playerPosition.second;
@@ -182,7 +182,7 @@ class State {
             }
 
             auto newPlayerPos = make_pair(py + dy, px + dx);
-            return State(newPlayerPos, newBoxes, this, mv);
+            return new State(newPlayerPos, newBoxes, this, mv);
         }
 
         bool operator==(const State& st) const { 
@@ -203,10 +203,10 @@ class State {
 };
 
 template<>
-struct hash<State> {
-    size_t operator()(const State& st) const {
+struct hash<State*> {
+    size_t operator()(State* const& st) const {
         size_t hsh = 0;
-        for ( auto pos : st.boxes) {
+        for ( auto pos : st -> boxes) {
             size_t x = pos.first * 1013 + pos.second;
             x ^= x >> 17;
             x *= 830770091;   
@@ -219,41 +219,28 @@ struct hash<State> {
             hsh += x;
         }
 
-        int playerPos = st.playerPosition.first * 1013 + st.playerPosition.second;
+        int playerPos = st -> playerPosition.first * 1013 + st -> playerPosition.second;
         return hsh ^ (hash<int>()(playerPos));
     }
 };
 
-// class Player {
-//     public:
-//         pair<int, int> static normalized(const vector<vector<bool>>& reachable) {
-//             int m = reachable.size();
-//             int n = reachable.size();
-
-//             for (int j = 0; j < m; j++) {
-//                 for (int i = 0; i < n; i++) {
-//                     if (reachable[j][i]) {
-//                         return { j, i };
-//                     }
-//                 }
-//             }
-
-//             return {-1, -1};
-//         }
-// };
-
+struct StatePtrEq {
+    bool operator () ( State const* lhs, State const* rhs ) const {
+        return lhs->operator==(*rhs);
+    }
+};
 
 class Solution {
     public:
         Solution(const Board brd): board(brd) {}
 
-        void go(State initialState) {
+        void go(State* initialState) {
             bool foundSolution = false;
-            unordered_set<State, hash<State>> visited;
-            queue<State> queue ( {initialState} );
+            unordered_set<State*, hash<State*>, StatePtrEq> visited;
+            queue<State*> queue ( { initialState } );
             while (!(foundSolution || queue.empty())) {
-                State parent = queue.front();
-                auto succs = successors(parent);
+                State* parent = queue.front();
+                auto succs = successors(*parent);
                 cout << visited.size() << " " << queue.size() << " " << succs.size() << endl;
                 queue.pop();
                 
@@ -268,19 +255,19 @@ class Solution {
                         if ( winningState(state) ) {
                             foundSolution = true;
                             cout << "Found solution!" << endl;
-                            cout << State::output(&state) << endl;
+                            cout << State::output(state) << endl;
                             break;
                         }
                     } else {
                         cout << " Visited! " << endl;
-                        debug(state);
+                        debug(*state);
                     }
                 }
             }
         }
 
-        vector<State> successors(State& parent) {
-            vector<State> succs;
+        vector<State*> successors(State& parent) {
+            vector<State*> succs;
 
             int py = parent.playerPosition.first;
             int px = parent.playerPosition.second;
@@ -339,8 +326,8 @@ class Solution {
             return false;
         }
 
-        bool winningState(State& st) {
-            for (auto box : st.boxes) {
+        bool winningState(State* st) {
+            for (auto box : st -> boxes) {
                 if (!board.atGoal(box)) {
                     return false;
                 }
@@ -416,7 +403,7 @@ int main() {
 
     // calculate top-left reachable position of the player
     auto board = Board(brd);
-    auto initial = State(player, boxes);
+    auto initial = new State(player, boxes);
 
     Solution(board).go(initial);
 
