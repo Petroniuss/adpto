@@ -24,12 +24,13 @@ const char BOX = 'O';
 const char GOAL = '*';
 const char EMPTY = ' ';
 
-class Directions {
-    public:
-        constexpr const static int dy [4] = { -1, 0, 0, 1};
-        constexpr const static int dx [4] = { 0, -1, 1, 0};
-        const static int count = 4;
-};
+// oioioi doesn't like this definition
+// class Directions {
+//     public:
+//         constexpr const static int dy [4] = { -1, 0, 0, 1};
+//         constexpr const static int dx [4] = { 0, -1, 1, 0};
+//         const static int count = 4;
+// };
 
 class Board {
     public: 
@@ -276,14 +277,17 @@ class Solution {
         }
 
         vector<State*> successors(State& parent) {
-            vector<State*> succs;
+            const static int dys [4] = { -1, 0, 0, 1};
+            const static int dxs [4] = { 0, -1, 1, 0};
+            const static int count = 4;
 
+            vector<State*> succs;
             int py = parent.playerPosition.first;
             int px = parent.playerPosition.second;
 
-            for (int i = 0; i < Directions::count; i++) {
-                int dx = Directions::dx[i];
-                int dy = Directions::dy[i];
+            for (int i = 0; i < count; i++) {
+                int dx = dxs[i];
+                int dy = dys[i];
 
                 int nx = px + dx;
                 int ny = py + dy;
