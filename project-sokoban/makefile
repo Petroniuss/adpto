@@ -14,6 +14,8 @@ CXXFLAGS :=  -std=c++11
 CPPFLAGS ?= $(INC_FLAGS) -MMD -MP
 CCX := clang++
 
+TEST ?= d1
+
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CCX) $(OBJS) -o $@ $(LDFLAGS)
 
@@ -33,7 +35,12 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS)  -c $< -o $@
 
 
-.PHONY: clean
+.PHONY: clean all
+
+all: $(BUILD_DIR)/$(TARGET_EXEC)
+	echo $(TEST)
+	./$(BUILD_DIR)/$(TARGET_EXEC) < tests/$(TEST).in > tests/$(TEST).out
+	python3 judge.py tests/$(TEST).in tests/$(TEST).out -v
 
 clean:
 	$(RM) -r $(BUILD_DIR)
