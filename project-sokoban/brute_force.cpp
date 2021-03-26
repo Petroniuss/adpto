@@ -12,6 +12,7 @@ const char WALL = '#';
 const char PLAYER = '-';
 const char BOX = '*';
 const char GOAL = 'O';
+const char EMPTY = ' ';
 
 class Directions {
     public:
@@ -24,10 +25,11 @@ class Board {
     public: 
         Board(const vector<vector<char>>& board) : brd(board) {}
 
-        const vector<vector<bool>>& reachablePositions(
+        const vector<vector<bool>> reachablePositions(
             const pair<int, int>& player, const vector<pair<int, int>>& boxes) {
 
-            int m, n = rows(), cols();
+            int m = rows();
+            int n = cols();
 
             queue<pair<int, int>> queue ( { player } );
             vector<vector<bool>> reachable(m, vector<bool>(n));
@@ -50,6 +52,24 @@ class Board {
             }
 
             return reachable;
+        }
+
+        char** boardCopy() {
+            int m = rows();
+            int n = cols();
+
+            char** tmp = new char*[m];
+            for (int i = 0; i < m; i++) {
+                tmp[i] = new char[n];
+            }
+
+            for(int j = 0; j < m; j++) {
+                for (int i = 0; i < n; i++) {
+                    tmp[j][i] = brd[j][i];
+                }
+            }
+
+            return tmp;
         }
 
         int rows() {
@@ -125,13 +145,18 @@ class State {
                 }
             }
 
-            auto newPlayerPos = make_pair(playerPosition.first + dy, playerPosition.second + dx);
+            int py = playerPosition.first;
+            int px = playerPosition.second;
+            auto newPlayerPos = make_pair(py + dy, px + dx);
             return State(newPlayerPos, newBoxes, this, mv);
         }
 
         State dragBox(int dy, int dx) {
             // assumes that the movement is valid
-            auto movedBox = make_pair(-dy, -dx);
+            int py = playerPosition.first;
+            int px = playerPosition.second;
+
+            auto movedBox = make_pair(py - dy, px - dx);
             int i;
             for( i = 0; i < boxes.size(); i++) {
                 if (movedBox == boxes[i]) {
@@ -156,7 +181,7 @@ class State {
                 }
             }
 
-            auto newPlayerPos = make_pair(playerPosition.first + dy, playerPosition.second + dx);
+            auto newPlayerPos = make_pair(py + dy, px + dx);
             return State(newPlayerPos, newBoxes, this, mv);
         }
 
@@ -166,9 +191,10 @@ class State {
 
         static string output(State* state) {
             string s = "";
-            while (state -> parentState != NULL ) {
-                s.push_back(state -> move);
-                state = state -> parentState;
+            State* tmp = state;
+            while (tmp -> parentState != nullptr ) {
+                s.push_back(tmp -> move);
+                tmp = tmp -> parentState;
             }
 
             reverse(s.begin(), s.end());
@@ -177,8 +203,8 @@ class State {
 };
 
 template<>
-  struct hash<State> {
-    size_t operator()(const State& st) {
+struct hash<State> {
+    size_t operator()(const State& st) const {
         size_t hsh = 0;
         for ( auto pos : st.boxes) {
             size_t x = pos.first * 1013 + pos.second;
@@ -196,7 +222,7 @@ template<>
         int playerPos = st.playerPosition.first * 1013 + st.playerPosition.second;
         return hsh ^ (hash<int>()(playerPos));
     }
-  };
+};
 
 // class Player {
 //     public:
@@ -223,12 +249,19 @@ class Solution {
 
         void go(State initialState) {
             bool foundSolution = false;
-            while (!foundSolution || !queue.empty()) {
+            unordered_set<State, hash<State>> visited;
+            queue<State> queue ( {initialState} );
+            while (!(foundSolution || queue.empty())) {
                 State parent = queue.front();
+                auto succs = successors(parent);
+                cout << visited.size() << " " << queue.size() << " " << succs.size() << endl;
                 queue.pop();
-
-                for ( auto state : successors(parent) ) {
-                    if ( visited.find(state) == visited.end()) {
+                
+                // sth bad is happening here
+                for ( auto state : succs ) {
+                    // debug(state);
+                    auto foo = visited.find(state);
+                    if ( foo == visited.end()) {
                         visited.insert(state);
                         queue.push(state);
 
@@ -238,12 +271,15 @@ class Solution {
                             cout << State::output(&state) << endl;
                             break;
                         }
+                    } else {
+                        cout << " Visited! " << endl;
+                        debug(state);
                     }
                 }
             }
         }
 
-        vector<State>& successors(State& parent) {
+        vector<State> successors(State& parent) {
             vector<State> succs;
 
             int py = parent.playerPosition.first;
@@ -257,14 +293,22 @@ class Solution {
                 int ny = py + dy;
                 // check if it's possible to move 
                 if ( validMove(parent.boxes, ny, nx) ) {
-                    succs.push_back(parent.movePlayer(dy, dx));
 
                     int by = py - dy;
                     int bx = px - dx;
 
                     // check if it's possible to drag a box 
                     if ( validDrag(parent.boxes, by, bx) ) {
+                        cout << "------- Drag ------" << endl;
+                        cout << dy << ", " << dx << " - Delta " << endl;
+                        cout << py << ", " << px << " - old Player" << endl;
+                        cout << by << ", " << bx << " - old Box" << endl;
+                        cout << ny << ", " << nx << " - new Player" << endl;
+                        debug(parent);
+                        cout << "---------------------" << endl << endl;
                         succs.push_back(parent.dragBox(dy, dx));
+                    } else {
+                        succs.push_back(parent.movePlayer(dy, dx));
                     }
                 }
             }
@@ -295,7 +339,7 @@ class Solution {
             return false;
         }
 
-        bool winningState(State st) {
+        bool winningState(State& st) {
             for (auto box : st.boxes) {
                 if (!board.atGoal(box)) {
                     return false;
@@ -305,10 +349,37 @@ class Solution {
             return true;
         }
 
+        // debug
+        void debug(State& state) {
+            int m = board.rows();
+            int n = board.cols();
+            char** tmp = board.boardCopy();
+
+            for (auto box : state.boxes) {
+                tmp[box.first][box.second] = BOX;
+            }
+
+            auto player = state.playerPosition;
+            tmp[player.first][player.second] = PLAYER;
+
+            for (int j = 0; j < m; j++ ) {
+                for (int i = 0; i < n; i++ ) {
+                    cout << tmp[j][i];
+                }
+                cout << endl;
+            }
+
+            cout << endl << endl;
+
+            for (int j = 0; j < m; j++ ) {
+                free(tmp[j]);
+            }
+
+            free(tmp);
+        }
+
     private:
         Board board;
-        unordered_set<State> visited;
-        queue<State> queue;
 };
 
 
@@ -322,16 +393,21 @@ int main() {
     vector<vector<char>> brd(rows, vector<char>(cols));
     vector<pair<int, int>> boxes;
     pair<int, int> player;
+    string s;
+    std::getline(std::cin, s);
 
     for( int j = 0; j < rows; j++ ) {
+        std::getline(std::cin, s);
         for (int i = 0; i < cols; i++ ) {
-            char chr; 
-            cin >> chr;
+            char chr = s[i];
+            if ( chr == BOX || chr == PLAYER ) {
+                if (chr == BOX ) {
+                    boxes.push_back(make_pair(j, i));
+                } else if ( chr == PLAYER ) {
+                    player = make_pair(j, i);
+                }
 
-            if (chr == BOX) {
-                boxes.push_back(make_pair(j, i));
-            } if ( chr == PLAYER ) {
-                player = make_pair(j, i);
+                brd[j][i] = EMPTY;
             } else {
                 brd[j][i] = chr;
             }
