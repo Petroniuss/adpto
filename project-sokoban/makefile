@@ -10,7 +10,7 @@ DEPS := $(OBJS:.o=.d)
 INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS))
 
-CXXFLAGS :=  -std=c++11
+CXXFLAGS :=  -std=c++11 -Wall -Wextra -pedantic
 CPPFLAGS ?= $(INC_FLAGS) -MMD -MP
 CCX := clang++
 

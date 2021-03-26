@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include <vector>
 #include <queue>
 #include <stack>
@@ -34,34 +35,35 @@ class Board {
     public: 
         Board(const vector<vector<char>>& board) : brd(board) {}
 
-        const vector<vector<bool>> reachablePositions(
-            const pair<int, int>& player, const vector<pair<int, int>>& boxes) {
+        // not used yet, todo fixed &boxes param not used
+        // const vector<vector<bool>> reachablePositions(
+        //     const pair<int, int>& player, const vector<pair<int, int>>& boxes) {
 
-            int m = rows();
-            int n = cols();
+        //     int m = rows();
+        //     int n = cols();
 
-            queue<pair<int, int>> queue ( { player } );
-            vector<vector<bool>> reachable(m, vector<bool>(n));
+        //     queue<pair<int, int>> queue ( { player } );
+        //     vector<vector<bool>> reachable(m, vector<bool>(n));
 
-            while ( !queue.empty() ) {
-                auto position = queue.front();
-                queue.pop();
+        //     while ( !queue.empty() ) {
+        //         auto position = queue.front();
+        //         queue.pop();
 
-                int py = position.first;
-                int px = position.second;
-                for ( int i = 0; i < Directions::count; i++ ) {
-                    int nx = px + Directions::dx[i];
-                    int ny = py + Directions::dy[i];
+        //         int py = position.first;
+        //         int px = position.second;
+        //         for ( int i = 0; i < Directions::count; i++ ) {
+        //             int nx = px + Directions::dx[i];
+        //             int ny = py + Directions::dy[i];
 
-                    if (within(ny, nx) && !reachable[ny][nx]) {
-                        reachable[ny][nx] = true;
-                        queue.push({ny, nx});
-                    }
-                }
-            }
+        //             if (within(ny, nx) && !reachable[ny][nx]) {
+        //                 reachable[ny][nx] = true;
+        //                 queue.push({ny, nx});
+        //             }
+        //         }
+        //     }
 
-            return reachable;
-        }
+        //     return reachable;
+        // }
 
         char** boardCopy() {
             int m = rows();
@@ -126,20 +128,20 @@ class State {
 
         
         State(const pair<int, int>& playerPos, const vector<pair<int, int>>& bxes): 
-            playerPosition(playerPos), 
             boxes(bxes),
-            move(' '),
-            parentState(nullptr) { }
+            playerPosition(playerPos), 
+            parentState(nullptr),
+            move(' ') { }
             
         State(const pair<int, int>& playerPos, const vector<pair<int, int>>& bxes, State* parSt, char mv): 
-            playerPosition(playerPos), 
             boxes(bxes),
-            move(mv),
-            parentState(parSt) { }
+            playerPosition(playerPos), 
+            parentState(parSt),
+            move(mv) { }
 
         State* movePlayer(int dy, int dx) {
             auto newBoxes = boxes;
-            char mv;
+            char mv = '\0';
             if ( dy == 0 ) {
                 if ( dx == -1 ) {
                     mv = 'l';
@@ -166,7 +168,7 @@ class State {
             int px = playerPosition.second;
 
             auto movedBox = make_pair(py - dy, px - dx);
-            int i;
+            size_t i;
             for( i = 0; i < boxes.size(); i++) {
                 if (movedBox == boxes[i]) {
                     break;
@@ -175,17 +177,17 @@ class State {
 
             auto newBoxes = boxes;
             newBoxes[i] = playerPosition;
-            char mv;
+            char mv = '\0';
             if ( dy == 0 ) {
                 if ( dx == -1 ) {
                     mv = 'L';
-                } else if ( dx == 1) {
+                } else {
                     mv = 'R';
                 }
             } else if (dx == 0) {
                 if (dy == -1) {
                     mv = 'U';
-                } else if (dy == 1) {
+                } else {
                     mv = 'D';
                 }
             }
@@ -211,8 +213,7 @@ class State {
         }
 };
 
-template<>
-struct hash<State*> {
+struct StatePtrHash {
     size_t operator()(State* const& st) const {
         size_t hsh = 0;
         for ( auto pos : st -> boxes) {
@@ -245,7 +246,7 @@ class Solution {
 
         void go(State* initialState) {
             bool foundSolution = false;
-            unordered_set<State*, hash<State*>, StatePtrEq> visited;
+            unordered_set<State*, StatePtrHash, StatePtrEq> visited;
             queue<State*> queue ( { initialState } );
             while (!(foundSolution || queue.empty())) {
                 State* parent = queue.front();
