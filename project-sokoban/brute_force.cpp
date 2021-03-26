@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <stack>
 #include <memory>
 #include <utility>
 #include <tuple>
@@ -8,10 +9,18 @@
 
 using namespace std;
 
+// #define DEBUG 
+
+#ifdef DEBUG 
+#define deb(x) (x)
+#else 
+#define deb(x) do{}while(0)
+#endif
+
 const char WALL = '#';
 const char PLAYER = '-';
-const char BOX = '*';
-const char GOAL = 'O';
+const char BOX = 'O';
+const char GOAL = '*';
 const char EMPTY = ' ';
 
 class Directions {
@@ -240,13 +249,15 @@ class Solution {
             queue<State*> queue ( { initialState } );
             while (!(foundSolution || queue.empty())) {
                 State* parent = queue.front();
-                auto succs = successors(*parent);
-                cout << visited.size() << " " << queue.size() << " " << succs.size() << endl;
                 queue.pop();
+                auto succs = successors(*parent);
+
+                deb(cout << "Visited states " << visited.size() << endl );
+                deb(cout << "Queue size " << queue.size() << endl );
+                deb(cout << "New states " << succs.size() << endl );
+                deb(showState(*parent));
                 
-                // sth bad is happening here
                 for ( auto state : succs ) {
-                    // debug(state);
                     auto foo = visited.find(state);
                     if ( foo == visited.end()) {
                         visited.insert(state);
@@ -254,15 +265,12 @@ class Solution {
 
                         if ( winningState(state) ) {
                             foundSolution = true;
-                            cout << "Found solution!" << endl;
+                            deb(cout << "Found solution!" << endl);
                             cout << State::output(state) << endl;
                             break;
                         }
-                    } else {
-                        cout << " Visited! " << endl;
-                        debug(*state);
                     }
-                }
+                }                 
             }
         }
 
@@ -280,23 +288,22 @@ class Solution {
                 int ny = py + dy;
                 // check if it's possible to move 
                 if ( validMove(parent.boxes, ny, nx) ) {
+                    succs.push_back(parent.movePlayer(dy, dx));
 
                     int by = py - dy;
                     int bx = px - dx;
 
                     // check if it's possible to drag a box 
                     if ( validDrag(parent.boxes, by, bx) ) {
-                        cout << "------- Drag ------" << endl;
-                        cout << dy << ", " << dx << " - Delta " << endl;
-                        cout << py << ", " << px << " - old Player" << endl;
-                        cout << by << ", " << bx << " - old Box" << endl;
-                        cout << ny << ", " << nx << " - new Player" << endl;
-                        debug(parent);
-                        cout << "---------------------" << endl << endl;
+                        deb(cout << "------- Drag ------" << endl);
+                        deb(cout << dy << ", " << dx << " - Delta " << endl);
+                        deb(cout << py << ", " << px << " - old Player" << endl);
+                        deb(cout << by << ", " << bx << " - old Box" << endl);
+                        deb(cout << ny << ", " << nx << " - new Player" << endl);
+                        deb(showState(parent));
+                        deb(cout << "---------------------" << endl << endl);
                         succs.push_back(parent.dragBox(dy, dx));
-                    } else {
-                        succs.push_back(parent.movePlayer(dy, dx));
-                    }
+                    } 
                 }
             }
 
@@ -336,8 +343,7 @@ class Solution {
             return true;
         }
 
-        // debug
-        void debug(State& state) {
+        void showState(State& state) {
             int m = board.rows();
             int n = board.cols();
             char** tmp = board.boardCopy();
@@ -371,7 +377,7 @@ class Solution {
 
 
 int main() {
-    cout << "Welcome back to this hell of a language!" << endl;
+    deb(cout << "Welcome back to this hell of a problem/language!" << endl);
 
     int rows, cols;
     cin >> rows;
@@ -401,7 +407,6 @@ int main() {
         }
     }
 
-    // calculate top-left reachable position of the player
     auto board = Board(brd);
     auto initial = new State(player, boxes);
 
