@@ -248,16 +248,16 @@ class Solution {
         void go(State* initialState) {
             bool foundSolution = false;
             unordered_set<State*, StatePtrHash, StatePtrEq> visited;
-            queue<State*> queue ( { initialState } );
+            stack<State*> queue ( { initialState } );
             while (!(foundSolution || queue.empty())) {
-                State* parent = queue.front();
+                State* parent = queue.top();
                 queue.pop();
                 auto succs = successors(*parent);
 
-                deb(cout << "Visited states " << visited.size() << endl );
-                deb(cout << "Queue size " << queue.size() << endl );
-                deb(cout << "New states " << succs.size() << endl );
-                deb(showState(*parent));
+                // deb(cout << "Visited states " << visited.size() << endl );
+                // deb(cout << "Queue size " << queue.size() << endl );
+                // deb(cout << "New states " << succs.size() << endl );
+                // deb(showState(*parent));
                 
                 for ( auto state : succs ) {
                     auto foo = visited.find(state);
@@ -266,6 +266,7 @@ class Solution {
                         queue.push(state);
 
                         if ( winningState(state) ) {
+                            deb(cout << "Visited states " << visited.size() << endl );
                             foundSolution = true;
                             deb(cout << "Found solution!" << endl);
                             cout << State::output(state) << endl;
@@ -300,13 +301,6 @@ class Solution {
 
                     // check if it's possible to drag a box 
                     if ( validDrag(parent.boxes, by, bx) ) {
-                        deb(cout << "------- Drag ------" << endl);
-                        deb(cout << dy << ", " << dx << " - Delta " << endl);
-                        deb(cout << py << ", " << px << " - old Player" << endl);
-                        deb(cout << by << ", " << bx << " - old Box" << endl);
-                        deb(cout << ny << ", " << nx << " - new Player" << endl);
-                        deb(showState(parent));
-                        deb(cout << "---------------------" << endl << endl);
                         succs.push_back(parent.dragBox(dy, dx));
                     } 
                 }

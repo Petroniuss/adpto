@@ -38,7 +38,6 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 .PHONY: clean all
 
 all: $(BUILD_DIR)/$(TARGET_EXEC)
-	echo $(TEST)
 	./$(BUILD_DIR)/$(TARGET_EXEC) < tests/$(TEST).in > tests/$(TEST).out
 	python3 judge.py tests/$(TEST).in tests/$(TEST).out -v
 
